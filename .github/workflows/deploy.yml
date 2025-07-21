@@ -4,21 +4,26 @@ name: Deploy Flutter Web to GitHub Pages
 on:
   push:
     branches:
-      - main # Or your default branch, e.g., 'master'
-  workflow_dispatch: # Allows you to manually trigger the workflow from the GitHub Actions tab
+      - main # Or your default branch
+  workflow_dispatch:
 
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
+    permissions:
+      # Grant specific write permissions required for GitHub Pages deployment
+      contents: write
+      pages: write
+      id-token: write
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4 # Use v4 for better compatibility
+        uses: actions/checkout@v4
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.x' # Specify your Flutter version, e.g., '3.22.x' or 'stable'
+          flutter-version: '3.x'
           channel: 'stable'
 
       - name: Enable Flutter Web
@@ -28,13 +33,18 @@ jobs:
         run: flutter pub get
 
       - name: Build Web App
-        run: flutter build web --release --base-href /preview/ # IMPORTANT: Replace YOUR_REPOSITORY_NAME with your actual GitHub repository name
+        # Ensure --base-href matches your GitHub Pages URL structure
+        run: flutter build web --release --base-href /preview/
+
+      - name: Upload Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './build/web' # The directory containing your built web app
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4 # A popular action for deploying to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4 # Official GitHub Pages deployment action
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }} # Automatically provided by GitHub Actions
-          publish_dir: ./build/web # Directory containing your built web app
-          publish_branch: gh-pages # The branch where your web app will be published (GitHub Pages default)
-          user_name: 'github-actions[bot]' # Optional: Sets the commit author for the deployment
-          user_email: 'github-actions[bot]@users.noreply.github.com' # Optional: Sets the commit email
+          token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/web
+          publish_branch: gh-pages # Or your chosen publishing branch
